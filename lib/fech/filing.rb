@@ -13,7 +13,7 @@ module Fech
     # note that there are plenty of <v3 filings after this, so readable? still needs to be checked
     FIRST_V3_FILING = 11850 
     
-    attr_accessor :filing_id, :download_dir
+    attr_accessor :filing_id, :download_dir, :file_host
 
     # Create a new Filing object, assign the download directory to system's
     # temp folder by default.
@@ -23,6 +23,7 @@ module Fech
     def initialize(filing_id, opts={})
       @filing_id    = filing_id
       @download_dir = opts[:download_dir] || Dir.tmpdir
+      @file_host    = opts[:file_host] || 'http://docquery.fec.gov/dcdev/posted/'
       @translator   = opts[:translate] ? Fech::Translator.new(:include => opts[:translate]) : nil
       @quote_char   = opts[:quote_char] || '"'
       @csv_parser   = opts[:csv_parser] || Fech::Csv
@@ -311,7 +312,7 @@ module Fech
     end
 
     def filing_url
-      "http://docquery.fec.gov/dcdev/posted/#{filing_id}.fec"
+      "#{file_host}" + file_name
     end
 
     # Iterates over and yields the Filing's lines
@@ -327,8 +328,7 @@ module Fech
       resave_f99_contents if ['F99', '"F99"'].include? form_type
 
       c = 0
-      @csv_parser.parse_row(@customized ? custom_file_path : file_path, opts.merge(:col_sep => delimiter, :quote_char => @quote_char, :skip_blanks => true, :encoding => @encoding)) do |row|
-        if opts[:with_index]
+      @csv_parser.parse_row(@customized ? custom_file_path : file_path, opts.merge(:col_sep => delimiter, :quote_char => @quote_char, :skip_blanks => true, :encoding => @encoding)) do |row|        if opts[:with_index]
           yield [row, c]
           c += 1
         else
